@@ -3,17 +3,19 @@ import { EXTRACTION_PROMPT, SUMMARY_PROMPT, CONFLICT_PROMPT, CLARIFICATION_PROMP
 import { extractionResponseSchema, conflictResponseSchema, clarificationResponseSchema } from './schemas';
 import type { ExtractedReport, PatientIntake, PatientRecord, Conflict, ClarificationQuestion } from '@/types';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable is missing.");
-}
+const getGenAI = () => {
+  if (!process.env.GEMINI_API_KEY && process.env.NODE_ENV !== 'development') {
+    console.warn("GEMINI_API_KEY environment variable is missing.");
+  }
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'missing_key');
+};
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const modelFlash = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const getModel = () => getGenAI().getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function extractReportData(rawText: string): Promise<ExtractedReport> {
   try {
     const prompt = EXTRACTION_PROMPT.replace('{text}', rawText);
-    const result = await modelFlash.generateContent({
+    const result = await getModel().generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.1,
@@ -33,7 +35,7 @@ export async function extractReportData(rawText: string): Promise<ExtractedRepor
 export async function generateSummary(record: PatientRecord): Promise<string> {
   try {
     const prompt = SUMMARY_PROMPT.replace('{record}', JSON.stringify(record, null, 2));
-    const result = await modelFlash.generateContent({
+    const result = await getModel().generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
@@ -53,7 +55,7 @@ export async function detectConflicts(intake: PatientIntake, report: ExtractedRe
       .replace('{intake}', JSON.stringify(intake, null, 2))
       .replace('{report}', JSON.stringify(report, null, 2));
       
-    const result = await modelFlash.generateContent({
+    const result = await getModel().generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.1,
@@ -74,7 +76,7 @@ export async function generateClarifications(intake: PatientIntake, report: Extr
   try {
     const prompt = CLARIFICATION_PROMPT.replace('{data}', JSON.stringify({ intake, report }, null, 2));
       
-    const result = await modelFlash.generateContent({
+    const result = await getModel().generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.2,
