@@ -1,0 +1,62 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String?
+  email        String    @unique
+  passwordHash String
+  role         String    @default("doctor")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  patients     Patient[]
+}
+
+model Patient {
+  id          String   @id @default(cuid())
+  name        String
+  age         Int
+  sex         String
+  symptoms    String   // JSON string
+  conditions  String   // JSON string
+  allergies   String   // JSON string
+  medications String   // JSON string
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  reports     Report[]
+  records     MedicalRecord[]
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  reportType    String   @default("lab")
+  rawText       String
+  extractedData String   // JSON string
+  reportDate    DateTime?
+  uploadedAt    DateTime @default(now())
+}
+
+model MedicalRecord {
+  id             String   @id @default(cuid())
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id])
+  intakeData     String   // JSON string
+  extractedData  String   // JSON string
+  analysisResults String   // JSON string
+  reviewState    String   // JSON string
+  summary        String?
+  comparisonData String?  // JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
