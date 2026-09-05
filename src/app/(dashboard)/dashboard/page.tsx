@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
 export default async function DashboardPage() {
-  const session = null;
+  const session: any = { user: { name: 'Demo User' } };
   
   return (
     <div className="space-y-8">
